@@ -10,19 +10,21 @@ def load_model():
 
 bundle = load_model()
 model = bundle["model"]
-features = bundle["features"]  # Kaggle-де сақталған баған аттары тізімі
+features = bundle["features"]  # Kaggle-де сақталған бағандар тізімі
 
 st.title("2-ші зерттеу сұрағы: Келесі тапсырманың кеш тапсырылуын болжау")
+st.write(f"Модель күтетін белгілер (бағандар): `{features}`")
 st.write("Студенттің көрсеткіштерін енгізіңіз:")
 
-# Пайдаланушыдан мәндерді алу
-val1 = st.number_input("Алдыңғы жұмыстардың кешігу үлесі (0.0 - 1.0)", min_value=0.0, max_value=1.0, value=0.1)
-val2 = st.number_input("Осыған дейін орындалған жұмыстар саны", min_value=0, max_value=100, value=5)
-val3 = st.number_input("Соңғы екі аптадағы белсенді күндер саны", min_value=0, max_value=14, value=7)
+# Динамикалық түрде бағандар санына қарай енгізу өрістерін жасау
+input_vals = []
+for i, feature_name in enumerate(features):
+    val = st.number_input(f"{feature_name}", value=0.0)
+    input_vals.append(val)
 
 if st.button("Болжам жасау"):
     # Модель үйренген дәл сол баған аттарымен DataFrame құру
-    input_df = pd.DataFrame([[val1, val2, val3]], columns=features)
+    input_df = pd.DataFrame([input_vals], columns=features)
     
     # Болжам жасау
     prediction = int(model.predict(input_df)[0])
