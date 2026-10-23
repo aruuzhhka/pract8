@@ -1,15 +1,7 @@
-from pathlib import Path
-import joblib
-import pandas as pd
 import streamlit as st
-
-st.set_page_config(page_title="Тапсырманың кешігуін болжау", layout="centered")
-st.title("Тапсырманың кеш тапсырылуын болжау")
-st.write("Студенттің бұрынғы оқу әрекеттері негізінде келесі жұмыстың мерзімінде орындалуын болжау")
-st.info(
-    "Оқу демонстрациясы. Модель классификация алгоритмі арқылы оқытылған. "
-    "Нәтиже ескерту жасау және уақытты жоспарлауға қолдау көрсету үшін қолданылады."
-)
+import pandas as pd
+import joblib
+from pathlib import Path
 
 @st.cache_resource
 def load_model():
@@ -18,36 +10,24 @@ def load_model():
 
 bundle = load_model()
 model = bundle["model"]
-features = bundle["features"]
+features = bundle["features"]  # Kaggle-де сақталған баған аттары тізімі
 
-with st.form("prediction_form"):
-    prev_late_pct = st.slider("Алдыңғы жұмыстардың кешігу үлесі (0 - 1 аралығы)", 0.0, 1.0, 0.3, 0.05)
-    completed_tasks = st.number_input(
-        "Осыған дейін орындалған жұмыстар саны",
-        min_value=1, max_value=10, value=5, step=1
-    )
-    active_days = st.slider("Соңғы екі аптадағы белсенді күндер саны", 1, 14, 7, 1)
-    
-    clicked = st.form_submit_button("Болжам жасау")
+st.title("2-ші зерттеу сұрағы: Келесі тапсырманың кеш тапсырылуын болжау")
+st.write("Студенттің көрсеткіштерін енгізіңіз:")
 
-if clicked:
-    row = pd.DataFrame([{
-        "prev_late_pct": prev_late_pct,
-        "completed_tasks": completed_tasks,
-        "active_days": active_days
-    }])
+# Пайдаланушыдан мәндерді алу
+val1 = st.number_input("Алдыңғы жұмыстардың кешігу үлесі (0.0 - 1.0)", min_value=0.0, max_value=1.0, value=0.1)
+val2 = st.number_input("Осыған дейін орындалған жұмыстар саны", min_value=0, max_value=100, value=5)
+val3 = st.number_input("Соңғы екі аптадағы белсенді күндер саны", min_value=0, max_value=14, value=7)
+
+if st.button("Болжам жасау"):
+    # Модель үйренген дәл сол баған аттарымен DataFrame құру
+    input_df = pd.DataFrame([[val1, val2, val3]], columns=features)
     
-    prediction = int(model.predict(row[features])[0])
-    probability = model.predict_proba(row[features])[0][1] # Кешігу ықтималдығы
+    # Болжам жасау
+    prediction = int(model.predict(input_df)[0])
     
     if prediction == 1:
-        st.error(f"⚠️ **Назар аударыңыз:** Бұл тапсырманың кешігу ықтималдығы жоғары ({probability*100:.1f}%).")
-        st.warning("Педагогикалық ұсыныс: Студентке мерзімге дейін еске салу жіберіп, уақытты жоспарлауға қолдау көрсету қажет.")
+        st.error("⚠️ Болжам: Тапсырма мерзімінен кеш тапсырылуы мүмкін (1)")
     else:
-        st.success(f"✅ **Тамаша:** Тапсырма уақытында тапсырылады деп күтіледі (Кешігу ықтималдығы: {probability*100:.1f}%).")
-        
-    a, b = st.columns(2)
-    a.metric("Кешігу статусы", "Кеш (1)" if prediction == 1 else "Уақытында (0)")
-    b.metric("Кешігу ықтималдығы", f"{probability*100:.1f}%")
-    
-    st.caption("Болжам нақты нәтижеге кепілдік бермейді және тек ескерту сипатында.")
+        st.success("✅ Болжам: Тапсырма уақытында тапсырылады (0)")
